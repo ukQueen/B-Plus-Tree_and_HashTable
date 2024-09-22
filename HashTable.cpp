@@ -1,4 +1,4 @@
-#include "HashTable.h"
+#define NOMINMAX
 #include "HashTable.h"
 
 HashTable::HashTable() {
@@ -181,7 +181,7 @@ void HashTable::menu() {
 		printf("\n--------------------- Словарь (хэш-таблица)---------------------\n");
 		printf("Выберите действие:\n");
 		printf("[1] - просмотр содержимое словаря \n");
-		printf("[2] - добавление новые слова\n");
+		printf("[2] - добавление нового слова\n");
 		printf("[3] - удаление слова\n");
 		printf("[4] - проверка наличие слов в словаре\n");
 		printf("[5] - полная очистка словаря\n");
@@ -200,7 +200,25 @@ void HashTable::menu() {
 		int k;
 		bool flag_out_path;
 
+		while (true) {
+			
 		cin >> choose;
+
+			// Проверка на корректность ввода
+			if (std::cin.fail()) {
+				std::cin.clear(); // Сброс состояния потока
+				std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Очистка буфера ввода
+				std::cout << "Некорректный ввод! Пожалуйста, введите число." << std::endl;
+			}
+			else if (choose < 0 || choose > 7) {
+				// Проверка, что число находится в нужном диапазоне
+				std::cout << "Число вне диапазона! Пожалуйста, введите число от 0 до 7."<< std::endl;
+			}
+			else {
+				break; // Выход из цикла, если ввод корректен и число в диапазоне
+			}
+		}
+
 
 		switch (choose)
 		{
@@ -216,7 +234,25 @@ void HashTable::menu() {
 				printf("[1] - по бакетам \n");
 				printf("[2] - списком \n\n");
 				printf("Как вы хотите? Введите свой выбор: ");
+				while (true) {
+
 				cin >> k;
+
+					// Проверка на корректность ввода
+					if (std::cin.fail()) {
+						std::cin.clear(); // Сброс состояния потока
+						std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Очистка буфера ввода
+						std::cout << "Некорректный ввод! Пожалуйста, введите число." << std::endl;
+					}
+					else if (k < 1 || k > 2) {
+						// Проверка, что число находится в нужном диапазоне
+						std::cout << "Число вне диапазона! Пожалуйста, введите число от 1 до 2." << std::endl;
+					}
+					else {
+						break; // Выход из цикла, если ввод корректен и число в диапазоне
+					}
+				}
+
 
 				switch (k) {
 				case 2:
@@ -325,7 +361,26 @@ void HashTable::menu() {
 
 			flag_out_path = true;
 
+			while (true) {
+
 			cin >> k;
+
+				// Проверка на корректность ввода
+				if (std::cin.fail()) {
+					std::cin.clear(); // Сброс состояния потока
+					std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Очистка буфера ввода
+					std::cout << "Некорректный ввод! Пожалуйста, введите число." << std::endl;
+				}
+				else if (k < 0 || k > 3) {
+					// Проверка, что число находится в нужном диапазоне
+					std::cout << "Число вне диапазона! Пожалуйста, введите число от 0 до 3." << std::endl;
+				}
+				else {
+					break; // Выход из цикла, если ввод корректен и число в диапазоне
+				}
+			}
+
+
 			switch (k) {
 			case 1:
 				//file = "D:/Another/CLion Projects/txt files/" + files[0];

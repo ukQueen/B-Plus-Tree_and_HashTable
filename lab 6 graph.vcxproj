@@ -129,9 +129,11 @@
   <ItemGroup>
     <ClCompile Include="HashTable.cpp" />
     <ClCompile Include="lab 6 graph.cpp" />
+    <ClCompile Include="BPlusTree.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HashTable.h" />
+    <ClInclude Include="BPlusTree.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
