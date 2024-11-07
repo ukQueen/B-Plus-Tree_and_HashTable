@@ -8,42 +8,74 @@ Node::Node() {
 	this->DEGREE = 2;
 }
 
-////////////////////////////// Root //////////////////////////////////////////////
+vector<Node*> Node::Get_Links() {
+	return links;
+}
 
-Root::Root() {}
+vector<string> Node::Get_Words() {
+	return words;
+}
 
-vector<Node*> Root::Splitting(string str) {
-	bool flag = true;
-	for (int i = 0; i < words.size(); i++) {
-		if (str < words[i]) {
-			words.insert(words.begin() + i, str);
-			flag = false;
-			count_words++;
-			break;
-		}
+int Node::Get_Count_words() {
+	return count_words;
+}
+
+void Node::Set_Links(Node* link) {
+	links.push_back(link);
+}
+
+void Node::Set_Links(vector<Node*> link) {
+	links = link;
+}
+
+void Node::Set_parent_link(Node* link) {
+	parent_link = link;
+	for (auto link : links) {
+		link->Set_parent_link(this);
 	}
-	if (flag) {
+}
+
+Node* Node::Get_Parent_link() {
+	return this->parent_link;
+}
+
+void Node::Clear_Links() {
+	links.clear();
+}
+
+void Node::Clear_word() {
+	words.clear();
+	count_words = 0;
+}
+
+void Node::Set_Words(vector<string> words) {
+	this->words = words;
+	count_words = words.size();
+}
+
+void Node::Add_word(string str) {
+	if (words.size() == 0) {
 		words.push_back(str);
 		count_words++;
 	}
-
-	InnerNode* root1 = new InnerNode;
-	root1->Add_word(words[0]);
-	root1->Add_word(words[1]);
-
-	InnerNode* root2 = new InnerNode;
-	root2->Add_word(words[3]);
-
-	if (links.size() != 0) {
-		root1->Set_Links(vector<Node*>{links[0], links[1], links[2]});
-		root2->Set_Links(vector<Node*>{links[3], links[4]});
+	else {
+		bool flag = true;
+		for (int i = 0; i < words.size(); i++) {
+			if (str < words[i]) {
+				words.insert(words.begin() + i, str);
+				count_words++;
+				flag = false;
+				break;
+			}
+		}
+		if (flag) {
+			words.push_back(str);
+			count_words++;
+		}
 	}
-
-	return vector<Node*>{root1, root2};
 }
 
-
-void Root::Add_word(string str, vector<Node*> link) {
+void Node::Add_word(string str, vector<Node*> link) {
 	bool flag_link = false;
 	if (Leaf* buf_leaf = dynamic_cast<Leaf*>(link[0]))
 		flag_link = true;
@@ -82,6 +114,159 @@ void Root::Add_word(string str, vector<Node*> link) {
 	}
 }
 
+void Node::Rebalancing(Node* node) {
+	if (!node) return;
+
+	if (InnerNode* inner_node = dynamic_cast<InnerNode*>(node->Get_Links()[0])) {
+		auto current_links = node->Get_Links();
+		int count_links = node->Get_Links().size();
+		vector<Node*> new_links;
+
+		for (auto link : current_links) {
+			auto children_links = link->Get_Links();
+			for (auto child_link : children_links) {
+				new_links.push_back(child_link);
+			}
+		}
+
+		int count = new_links.size() / count_links;
+
+		if (count > 1) {
+			for (int i = 0; i < current_links.size(); i++) {
+				current_links[i]->Clear_Links();
+				if (i != current_links.size() - 1) {
+					for (int ii = 0; ii < count; ii++) {
+						current_links[i]->Set_Links(new_links[0]);
+						new_links[0]->Set_parent_link(current_links[i]);// поправляем ссылку на родителя
+						new_links.erase(new_links.begin());
+					}
+				}
+				else {
+					current_links[i]->Set_Links(new_links);
+					for (auto link : new_links) {
+						link->Set_parent_link(current_links[i]);
+					}
+				}
+			}
+
+		}
+		else {//если остается одна ссылка в каком то из узлов -> нужно убрать однуссылку из родителя
+			count++;
+			for (int i = 0; i < current_links.size() - 1; i++) {
+				current_links[i]->Clear_Links();
+				if (i != current_links.size() - 2) {
+					for (int ii = 0; ii < count; ii++) {
+						current_links[i]->Set_Links(new_links[0]);
+						new_links[0]->Set_parent_link(current_links[i]);// поправляем ссылку на родителя
+						new_links.erase(new_links.begin());
+					}
+				}
+				else {
+					current_links[i]->Set_Links(new_links);
+					for (auto link : new_links) {
+						link->Set_parent_link(current_links[i]);
+					}
+				}
+			}
+			links.pop_back();
+		}
+		for (auto child : inner_node->Get_Links()) {
+			Rebalancing(child);
+		}
+	}
+	else if (Root* root = dynamic_cast<Root*>(node)) {
+
+		for (auto child : root->Get_Links()) {
+			Rebalancing(child);
+		}
+	}
+}
+
+void Node::Rebalancing_keys(Node* node) {
+	if (!node) return;
+
+	if (Root* root = dynamic_cast<Root*>(node)) {
+		auto links = node->Get_Links();
+		vector<string> new_words;
+
+		for (int i = 1; i < links.size(); i++) {
+			Node* current_link = links[i];
+			while (true) {
+				if (Leaf* leaf = dynamic_cast<Leaf*>(current_link))
+					break;
+				current_link = current_link->Get_Links()[0];
+			}
+			new_words.push_back(current_link->Get_Words()[0]);
+		}
+	}
+
+	if (InnerNode* root = dynamic_cast<InnerNode*>(node)) {
+		auto links = node->Get_Links();
+		vector<string> new_words;
+
+		for (int i = 1; i < links.size(); i++) {
+			Node* current_link = links[i];
+			while (true) {
+				if (Leaf* leaf = dynamic_cast<Leaf*>(current_link))
+					break;
+				current_link = current_link->Get_Links()[0];
+			}
+			new_words.push_back(current_link->Get_Words()[0]);
+		}
+	}
+}
+
+void Node::Clear(Node* node) {
+	if (Leaf* leaf = dynamic_cast<Leaf*>(node)) {
+		delete leaf;
+	}
+	else if (InnerNode* i_node = dynamic_cast<InnerNode*>(node)) {
+		for (auto child : i_node->Get_Links()) {
+			Clear(child);
+		}
+		delete i_node;
+	}
+	else if (Root* root = dynamic_cast<Root*>(node)) {
+		for (auto child : root->Get_Links()) {
+			Clear(child);
+		}
+		delete root;
+	}
+}
+
+////////////////////////////// Root //////////////////////////////////////////////
+
+Root::Root() {}
+
+vector<Node*> Root::Splitting(string str) {
+	bool flag = true;
+	for (int i = 0; i < words.size(); i++) {
+		if (str < words[i]) {
+			words.insert(words.begin() + i, str);
+			flag = false;
+			count_words++;
+			break;
+		}
+	}
+	if (flag) {
+		words.push_back(str);
+		count_words++;
+	}
+
+	InnerNode* root1 = new InnerNode;
+	root1->Add_word(words[0]);
+	root1->Add_word(words[1]);
+
+	InnerNode* root2 = new InnerNode;
+	root2->Add_word(words[3]);
+
+	if (links.size() != 0) {
+		root1->Set_Links(vector<Node*>{links[0], links[1], links[2]});
+		root2->Set_Links(vector<Node*>{links[3], links[4]});
+	}
+
+	return vector<Node*>{root1, root2};
+}
 
 void Root::Root_Cleaning() {
 	count_words = 0;
@@ -135,24 +320,6 @@ bool Root::Find_word(string str) {
 		}
 	}
 	return false;
-}
-
-void Root::Clear(Node*node) {
-	if (Leaf* leaf = dynamic_cast<Leaf*>(node)) {
-		delete leaf;
-	}
-	else if (InnerNode* i_node = dynamic_cast<InnerNode*>(node)) {
-		for (auto child : i_node->Get_Links()) {
-			Clear(child);
-		}
-		delete i_node;
-	}
-	else if (Root* root= dynamic_cast<Root*>(node)) {
-		for (auto child : root->Get_Links()) {
-			Clear(child);
-		}
-		delete root;
-	}
 }
 
 
@@ -284,48 +451,6 @@ void Root::Set_New_Root(vector<string> actual_words) {
 }
 
 
-int Root::Get_Count_words() {
-	return count_words;
-}
-
-
-vector<string> Root::Get_Words() {
-	return words;
-}
-
-
-vector<Node*> Root::Get_Links() {
-	return links;
-}
-
-
-void Root::Set_Links(Node* link) {
-	links.push_back(link);
-}
-
-
-void Root::Set_Links(vector<Node*> link) {
-	links = link;
-}
-
-
-void Root::Set_parent_link(Node* link) {
-	parent_link = link;
-	for (auto link : links) {
-		link->Set_parent_link(this);
-	}
-}
-
-
-Node* Root::Get_Parent_link() {
-	return this->parent_link;
-}
-
-
-void Root::Clear_Links() {
-	links.clear();
-}
-
 Node* Root::Delete_word(string str) {
 	Node* current_link = this;
 	Node* previous_link = nullptr;
@@ -361,12 +486,6 @@ Node* Root::Delete_word(string str) {
 
 
 void Root::Delete_word(Node* node) {
-	/*for (auto link : links) {
-		if (link == node) {
-			link == nullptr;
-			return;
-		}
-	}*/
 	for (int i = 0; i < links.size(); i++) {
 		if (links[i] == node) {
 			links.erase(links.begin() + i);
@@ -383,81 +502,6 @@ void Root::Rebalancing(Node* node) {
 	if (Leaf* leaf = dynamic_cast<Leaf*>(node)) {
 		return;
 	}
-	
-	//else if (Leaf* leaf = dynamic_cast<Leaf*>(node->Get_Links()[0])) {
-	//	auto current_links = node->Get_Links();
-	//	int count_links = node->Get_Links().size();
-	//	vector<Node*> new_links;
-
-	//	for (auto link : current_links) {
-	//		auto children_links = link->Get_Links();
-	//		for (auto child_link : children_links) {
-	//			new_links.push_back(child_link);
-	//		}
-	//	}
-
-
-	//	//if (new_links.size() < 4) { //когда остается два узла (1 ребенок и 2 ребенка) то нужно их соеденить с узлом-родителем ( в родителе будет 3 ссылки на детей)
-	//	//	node->Clear_Links();
-	//	//	node->Set_Links(new_links);
-	//	//	for (auto link : new_links) {
-	//	//		link->Set_parent_link(node);
-	//	//	}
-	//	//	for (auto child : node->Get_Links()) {
-	//	//		Rebalancing(child);
-	//	//	}
-	//	//}
-	//	//else {
-
-	//		int count = new_links.size() / count_links;
-
-	//		//for (auto link : current_links) {
-	//		//	link->Clear_Links();
-	//		//}
-	//		if (count > 1) {
-	//			for (int i = 0; i < current_links.size(); i++) {
-	//				current_links[i]->Clear_Links();
-	//				if (i != current_links.size() - 1) {
-	//					for (int ii = 0; ii < count; ii++) {
-	//						current_links[i]->Set_Links(new_links[0]);
-	//						new_links[0]->Set_parent_link(current_links[i]);// поправляем ссылку на родителя
-	//						new_links.erase(new_links.begin());
-	//					}
-	//				}
-	//				else {
-	//					current_links[i]->Set_Links(new_links);
-	//					for (auto link : current_links) {
-	//						link->Set_parent_link(current_links[i]);
-	//					}
-	//				}
-	//			}
-
-	//		}
-	//		else {//если остается одна ссылка в каком то из узлов -> нужно убрать однуссылку из родителя
-	//			count++;
-	//			for (int i = 0; i < current_links.size() - 1; i++) {
-	//				current_links[i]->Clear_Links();
-	//				if (i != current_links.size() - 2) {
-	//					for (int ii = 0; ii < count; ii++) {
-	//						current_links[i]->Set_Links(new_links[0]);
-	//						new_links[0]->Set_parent_link(current_links[i]);// поправляем ссылку на родителя
-	//						new_links.erase(new_links.begin());
-	//					}
-	//				}
-	//				else {
-	//					current_links[i]->Set_Links(new_links);
-	//					for (auto link : new_links) {
-	//						link->Set_parent_link(current_links[i]);
-	//					}
-	//				}
-	//			}
-	//			links.pop_back();
-	//		//}
-
-	//	}
-	//}
-	//else
-	
 	if (InnerNode* inner_node = dynamic_cast<InnerNode*>(node->Get_Links()[0])) { 
 		auto current_links = node->Get_Links(); 
 		int count_links = node->Get_Links().size();
@@ -469,7 +513,6 @@ void Root::Rebalancing(Node* node) {
 				new_links.push_back(child_link);
 			}
 		}
-
 
 		if (new_links.size() < 4 && current_links.size()==2) { //когда остается два узла (1 ребенок и 2 ребенка) то нужно их соеденить с узлом-родителем ( в родителе будет 3 ссылки на детей)
 			node->Clear_Links();
@@ -484,10 +527,6 @@ void Root::Rebalancing(Node* node) {
 		else {
 
 			int count = new_links.size() / count_links;
-
-			//for (auto link : current_links) {
-			//	link->Clear_Links();
-			//}
 			if (count > 1) {
 				for (int i = 0; i < current_links.size(); i++) {
 					current_links[i]->Clear_Links();
@@ -505,7 +544,6 @@ void Root::Rebalancing(Node* node) {
 						}
 					}
 				}
-
 			}
 			else {//если остается одна ссылка в каком то из узлов -> нужно убрать одну ссылку из родителя
 				count++;
@@ -550,7 +588,6 @@ void Root::Rebalancing(Node* node) {
 		for (auto child : root->Get_Links()) {
 			Rebalancing(child);
 		}
-
 	}
 }
 
@@ -606,139 +643,12 @@ void Root::Rebalancing_keys(Node* node) {
 }
 
 
-void Root::Clear_word() {
-	words.clear();
-	count_words = 0;
-}
-
-
-void Root::Set_Words(vector<string> words) {
-	this->words = words;
-	count_words = words.size();
-}
-
-
-
 ///////////////////////////// InnerNode //////////////////////////////////////////
 
 InnerNode::InnerNode() {}
 
-void InnerNode::Add_word(string str) {
-	if (words.size() == 0) {
-		words.push_back(str);
-		count_words++;
-	}
-	else {
-		bool flag = true;
-		for (int i = 0; i < words.size(); i++) {
-			if (str < words[i]) {
-				words.insert(words.begin() + i, str);
-				count_words++;
-				flag = false;
-				break;
-			}
-		}
-		if (flag) {
-			words.push_back(str);
-			count_words++;
-		}
-	}
-}
-
-
-void InnerNode::Add_word(string str, vector<Node*> link) {
-	bool flag_link = false;
-	if (Leaf* buf_leaf = dynamic_cast<Leaf*>(link[0]))
-		flag_link = true;
-	if (words.size() == 0) {
-		words.push_back(str);
-		links.push_back(link[0]);
-		links.push_back(link[1]);
-		count_words++;
-	}
-	else {
-		bool flag = true;
-		for (int i = 0; i < words.size(); i++) {
-			if (str < words[i]) {
-				words.insert(words.begin() + i, str);
-				count_words++;
-				links.erase(links.begin() + i);
-				links.insert(links.begin() + i, link[0]);
-				links.insert(links.begin() + i +1, link[1]);
-				flag = false;
-				break;
-			}
-		}
-		if (flag) {
-			words.push_back(str);
-			links.pop_back();
-			links.push_back(link[0]);
-			links.push_back(link[1]);
-			count_words++;
-		}
-	}
-	if (flag_link) {
-		for (int i = 0; i < links.size()-1;i++) {
-			links[i]->Clear_Links();
-			links[i]-> Set_Links(links[i + 1]);
-		}
-	}
-}
-
-
-int InnerNode::Get_Count_words() {
-	return count_words;
-}
-
-
-vector<string> InnerNode::Get_Words() {
-	return words;
-}
-
-
-vector<Node*> InnerNode::Get_Links() {
-	return links;
-}
-
-
-void InnerNode::Set_Links(Node* link) {
-	links.push_back(link);
-}
-
-
-void InnerNode::Set_Links(vector<Node*> link) {
-	links = link;
-}
-
-void InnerNode::Clear(Node* node) {
-	if (Leaf* leaf = dynamic_cast<Leaf*>(node)) {
-		delete leaf;
-	}
-	else if (InnerNode* i_node = dynamic_cast<InnerNode*>(node)) {
-		for (auto child : i_node->Get_Links()) {
-			Clear(child);
-		}
-		delete i_node;
-	}
-	else if (Root* root = dynamic_cast<Root*>(node)) {
-		for (auto child : root->Get_Links()) {
-			Clear(child);
-		}
-		delete root;
-	}
-}
-
-void InnerNode::Set_parent_link(Node* link) {
-	parent_link = link;
-	for (auto link : links) {
-		link->Set_parent_link(this);
-	}
-}
-
 
 vector<Node*> InnerNode::Splitting(string str) {
-	
-
 	InnerNode* node1 = new InnerNode;
 	node1->Add_word(words[0]);
 	node1->Add_word(words[1]);
@@ -754,214 +664,15 @@ vector<Node*> InnerNode::Splitting(string str) {
 }
 
 
-Node* InnerNode::Get_Parent_link() {
-	return this->parent_link;
-}
-
-
-void InnerNode::Clear_Links() {
-	links.clear();
-}
 
 void InnerNode::Delete_word(Node* node) {
-	//for (auto link : links) {
-	//	if (link == node) {
-	//		link == nullptr;
-	//		return;
-	//	}
-	//}
 	for (int i = 0; i < links.size(); i++) {
 		if (links[i] == node) {
 			links.erase(links.begin() + i);
-			//words.pop_back();
-			//count_words--;
 			break;
 		}
 	}
 }
-
-
-void InnerNode::Rebalancing(Node* node) {
-	if (!node) return;
-	/*
-	if (Leaf* leaf = dynamic_cast<Leaf*>(node->Get_Links()[0])) {
-		auto current_links = node->Get_Links();
-		int count_links = node->Get_Links().size();
-		vector<Node*> new_links;
-
-		for (auto link : current_links) {
-			auto children_links = link->Get_Links();
-			for (auto child_link : children_links) {
-				new_links.push_back(child_link);
-			}
-		}
-
-		int count = new_links.size() / count_links;
-
-		//for (auto link : current_links) {
-		//	link->Clear_Links();
-		//}
-
-		if (count > 1) {
-			for (int i = 0; i < current_links.size(); i++) {
-				current_links[i]->Clear_Links();
-				if (i != current_links.size() - 1) {
-					for (int ii = 0; ii < count; ii++) {
-						current_links[i]->Set_Links(new_links[0]);
-						new_links[0]->Set_parent_link(current_links[i]);// поправляем ссылку на родителя
-						new_links.erase(new_links.begin());
-					}
-				}
-				else {
-					current_links[i]->Set_Links(new_links);
-					for (auto link : new_links) {
-						link->Set_parent_link(current_links[i]);
-					}
-				}
-			}
-
-		}
-		else {//если остается одна ссылка в каком то из узлов -> нужно убрать однуссылку из родителя
-			count++;
-			for (int i = 0; i < current_links.size() - 1; i++) {
-				current_links[i]->Clear_Links();
-				if (i != current_links.size() - 2) {
-					for (int ii = 0; ii < count; ii++) {
-						current_links[i]->Set_Links(new_links[0]);
-						new_links[0]->Set_parent_link(current_links[i]);// поправляем ссылку на родителя
-						new_links.erase(new_links.begin());
-					}
-				}
-				else {
-					current_links[i]->Set_Links(new_links);
-					for (auto link : new_links) {
-						link->Set_parent_link(current_links[i]);
-					}
-				}
-			}
-			links.pop_back();
-		}
-		
-	}
-	else 
-	*/
-		if (InnerNode* inner_node = dynamic_cast<InnerNode*>(node->Get_Links()[0])) {
-		auto current_links = node->Get_Links();
-		int count_links = node->Get_Links().size();
-		vector<Node*> new_links;
-
-		for (auto link : current_links) {
-			auto children_links = link->Get_Links();
-			for (auto child_link : children_links) {
-				new_links.push_back(child_link);
-			}
-		}
-
-		int count = new_links.size() / count_links;
-
-		/*for (auto link : current_links) {
-			link->Clear_Links();
-		}*/
-
-		if (count > 1) {
-			for (int i = 0; i < current_links.size(); i++) {
-				current_links[i]->Clear_Links();
-				if (i != current_links.size() - 1) {
-					for (int ii = 0; ii < count; ii++) {
-						current_links[i]->Set_Links(new_links[0]);
-						new_links[0]->Set_parent_link(current_links[i]);// поправляем ссылку на родителя
-						new_links.erase(new_links.begin());
-					}
-				}
-				else {
-					current_links[i]->Set_Links(new_links);
-					for (auto link : new_links) {
-						link->Set_parent_link(current_links[i]);
-					}
-				}
-			}
-
-		}
-		else {//если остается одна ссылка в каком то из узлов -> нужно убрать однуссылку из родителя
-			count++;
-			for (int i = 0; i < current_links.size() - 1; i++) {
-				current_links[i]->Clear_Links();
-				if (i != current_links.size() - 2) {
-					for (int ii = 0; ii < count; ii++) {
-						current_links[i]->Set_Links(new_links[0]);
-						new_links[0]->Set_parent_link(current_links[i]);// поправляем ссылку на родителя
-						new_links.erase(new_links.begin());
-					}
-				}
-				else {
-					current_links[i]->Set_Links(new_links);
-					for (auto link : new_links) {
-						link->Set_parent_link(current_links[i]);
-					}
-				}
-			}
-			links.pop_back();
-		}
-		for (auto child : inner_node->Get_Links()) {
-			Rebalancing(child);
-		}
-	}
-	else if (Root* root = dynamic_cast<Root*>(node)) {
-
-		for (auto child : root->Get_Links()) {
-			Rebalancing(child);
-		}
-	}
-}
-
-
-
-void InnerNode::Clear_word() {
-	words.clear();
-	count_words= 0;
-}
-
-
-void InnerNode::Set_Words(vector<string> words) {
-	this->words = words;
-	count_words = words.size();
-}
-
-
-void InnerNode::Rebalancing_keys(Node* node) {
-	if (!node) return;
-
-	if (Root* root = dynamic_cast<Root*>(node)) {
-		auto links = node->Get_Links();
-		vector<string> new_words;
-		
-		for (int i = 1; i < links.size(); i++) {
-			Node* current_link = links[i];
-			while (true) {
-				if (Leaf* leaf = dynamic_cast<Leaf*>(current_link))
-					break;
-				current_link = current_link->Get_Links()[0];
-			}
-			new_words.push_back(current_link->Get_Words()[0]);
-		}
-	}
-
-	if (InnerNode* root = dynamic_cast<InnerNode*>(node)) {
-		auto links = node->Get_Links();
-		vector<string> new_words;
-		
-		for (int i = 1; i < links.size(); i++) {
-			Node* current_link = links[i];
-			while (true) {
-				if (Leaf* leaf = dynamic_cast<Leaf*>(current_link))
-					break;
-				current_link = current_link->Get_Links()[0];
-			}
-			new_words.push_back(current_link->Get_Words()[0]);
-		}
-	}
-}
-
 
 
 ///////////////////////////// Leaf ///////////////////////////////////////////////
@@ -969,8 +680,7 @@ void InnerNode::Rebalancing_keys(Node* node) {
 Leaf::Leaf() {}
 
 
-void Leaf::Add_word(string str) {
-
+void Leaf::Add_word_without_key(string str) {
 	if (words.size() == 0) {
 		words.push_back(str);
 		count_words++;
@@ -998,28 +708,6 @@ void Leaf::Add_word(string str, vector<Node*> link) {
 }
 
 
-int Leaf::Get_Count_words() {
-	return count_words;
-}
-
-
-vector<string> Leaf::Get_Words() {
-	return words;
-}
-
-
-vector<Node*> Leaf::Get_Links() {
-	//return vector<Node*>(count_words+1, nullptr);//кароче тут выводит все нул птр, но по факту там должны быть ссылки на соседей
-	return links;
-}
-
-void Leaf::Set_Links(Node* link) {
-	links.push_back(link);
-}
-
-void Leaf::Set_Links(vector<Node*> link) {
-	links = link;
-}
 
 void Leaf::new_link(Node* link) {
 	vector<Node*> buf{ link };
@@ -1056,29 +744,15 @@ vector<Node*> Leaf::Splitting(string str) {
 	leaf2->Add_word(words[3]);
 
 	leaf1->Set_Links(leaf2);
-	//leaf1->Set_brother(left_Brother);
 	leaf2->Set_brother(leaf1);
-	//leaf2->Set_Links(links[0]);
 
 	return vector<Node*>{leaf1, leaf2};
 }
 
 
-Node* Leaf::Get_Parent_link() {
-	return this->parent_link;
-}
-
 void Leaf::Set_brother(Node* br) {
 	left_Brother = br;
 }
-
-
-void Leaf::Clear_Links() {
-	links.clear();
-}
-
-
-
 
 
 void Leaf::Delete_word(string str) {
@@ -1103,29 +777,10 @@ bool Leaf::Is_Sibling(Node* node) {
 }
 
 
-void Leaf::Clear(Node* node) {
-	if (Leaf* leaf = dynamic_cast<Leaf*>(node)) {
-		delete leaf;
-	}
-	else if (InnerNode* i_node = dynamic_cast<InnerNode*>(node)) {
-		for (auto child : i_node->Get_Links()) {
-			Clear(child);
-		}
-		delete i_node;
-	}
-	else if (Root* root = dynamic_cast<Root*>(node)) {
-		for (auto child : root->Get_Links()) {
-			Clear(child);
-		}
-		delete root;
-	}
-}
-
-
 void Leaf::Delete_word(Node* node) {
 	if (this == node) {
 		
-		if (left_Brother == nullptr) { //есл он левый в дерево, то у след листа указатель на брата будет ноль
+		if (left_Brother == nullptr) { //еслb он левый в дерево, то у след листа указатель на брата будет ноль
 			if (Leaf* leaf = dynamic_cast<Leaf*>(links[0])) {
 				leaf->Set_brother(nullptr);
 			}
@@ -1149,148 +804,6 @@ void Leaf::Delete_word(Node* node) {
 Node* Leaf::Get_brother() {
 	return left_Brother;
 }
-
-void Leaf::Add_word_without_key(string str) {
-	if (words.size() == 0) {
-		words.push_back(str);
-		count_words++;
-	}
-	else {
-		bool flag = true;
-		for (int i = 0; i < words.size(); i++) {
-			if (str < words[i]) {
-				words.insert(words.begin() + i, str);
-				count_words++;
-				flag = false;
-				break;
-			}
-		}
-		if (flag) {
-			words.push_back(str);
-			count_words++;
-		}
-	}
-}
-
-void Leaf::Rebalancing(Node* node) {
-	if (!node) return;
-
-	if (InnerNode* inner_node = dynamic_cast<InnerNode*>(node->Get_Links()[0])) {
-		auto current_links = node->Get_Links();
-		int count_links = node->Get_Links().size();
-		vector<Node*> new_links;
-
-		for (auto link : current_links) {
-			auto children_links = link->Get_Links();
-			for (auto child_link : children_links) {
-				new_links.push_back(child_link);
-			}
-		}
-
-		int count = new_links.size() / count_links;
-
-		/*for (auto link : current_links) {
-			link->Clear_Links();
-		}*/
-
-		if (count > 1) {
-			for (int i = 0; i < current_links.size(); i++) {
-				current_links[i]->Clear_Links();
-				if (i != current_links.size() - 1) {
-					for (int ii = 0; ii < count; ii++) {
-						current_links[i]->Set_Links(new_links[0]);
-						new_links[0]->Set_parent_link(current_links[i]);// поправляем ссылку на родителя
-						new_links.erase(new_links.begin());
-					}
-				}
-				else {
-					current_links[i]->Set_Links(new_links);
-					for (auto link : new_links) {
-						link->Set_parent_link(current_links[i]);
-					}
-				}
-			}
-
-		}
-		else {//если остается одна ссылка в каком то из узлов -> нужно убрать однуссылку из родителя
-			count++;
-			for (int i = 0; i < current_links.size() - 1; i++) {
-				current_links[i]->Clear_Links();
-				if (i != current_links.size() - 2) {
-					for (int ii = 0; ii < count; ii++) {
-						current_links[i]->Set_Links(new_links[0]);
-						new_links[0]->Set_parent_link(current_links[i]);// поправляем ссылку на родителя
-						new_links.erase(new_links.begin());
-					}
-				}
-				else {
-					current_links[i]->Set_Links(new_links);
-					for (auto link : new_links) {
-						link->Set_parent_link(current_links[i]);
-					}
-				}
-			}
-			links.pop_back();
-		}
-		for (auto child : inner_node->Get_Links()) {
-			Rebalancing(child);
-		}
-	}
-	else if (Root* root = dynamic_cast<Root*>(node)) {
-
-		for (auto child : root->Get_Links()) {
-			Rebalancing(child);
-		}
-	}
-}
-
-
-void Leaf::Rebalancing_keys(Node* node) {
-	if (!node) return;
-
-	if (Root* root = dynamic_cast<Root*>(node)) {
-		auto links = node->Get_Links();
-		vector<string> new_words;
-		
-		for (int i = 1; i < links.size(); i++) {
-			Node* current_link = links[i];
-			while (true) {
-				if (Leaf* leaf = dynamic_cast<Leaf*>(current_link))
-					break;
-				current_link = current_link->Get_Links()[0];
-			}
-			new_words.push_back(current_link->Get_Words()[0]);
-		}
-	}
-
-	if (InnerNode* root = dynamic_cast<InnerNode*>(node)) {
-		auto links = node->Get_Links();
-		vector<string> new_words;
-		
-		for (int i = 1; i < links.size(); i++) {
-			Node* current_link = links[i];
-			while (true) {
-				if (Leaf* leaf = dynamic_cast<Leaf*>(current_link))
-					break;
-				current_link = current_link->Get_Links()[0];
-			}
-			new_words.push_back(current_link->Get_Words()[0]);
-		}
-	}
-}
-
-
-void Leaf::Clear_word() {
-	words.clear();
-	count_words = 0;
-}
-
-
-void Leaf::Set_Words(vector<string> words) {
-	this->words = words;
-	count_words = words.size();
-}
-
 
 
 ///////////////////////////// Tree ///////////////////////////////////////////////
@@ -1356,25 +869,6 @@ void Tree::Print() {
 	printf("\t-------\n\n");
 	Print(root);
 	printf("\n------------------------------------------------------------------------\n\n");
-	//для проверкии
-	//Node* current = root;
-	//while (true) {
-	//	if (Leaf* leaf = dynamic_cast<Leaf*>(current))
-	//		break;
-	//	current = current->Get_Links()[0];
-	//}
-	//while (true) {
-	//	for (auto word : current->Get_Words()) {
-	//		cout << word << " ";
-	//	}
-	//	cout << "-> ";
-	//	if (current->Get_Links().size() == 0)
-	//		break;
-	//	current = current->Get_Links()[0];
-	//}
-	//printf("\n------------------------------------------------------------------------\n\n");
-	/////////
-
 }
 
 
@@ -1465,19 +959,6 @@ bool Tree::Find_word(string str) {
 }
 
 
-
-
-
-
-
-
-vector<string> Tree::getKeys() {
-	vector<string> keys;
-	getKeys(root, keys);
-	return keys;
-
-}
-
 void Tree::getKeys(Node* node, vector<string>& result) {
 	if (!node) return;
 
@@ -1547,10 +1028,7 @@ void Tree::From_file(string str) {
 		file.close();
 		for (auto word : words) {
 			if (!this->is_a_conj(word)) {
-				//k++;
-				//word += to_string(k); //использовалось для проверки 
 				this->Add_word(word);
-				//this->Print();
 			}
 		}
 
@@ -1568,19 +1046,6 @@ void Tree::Delete_word(string str) {
 
 
 void Tree::Rebalancing(Node* edited_leaf) {
-	//Node* current_link = root;
-	//Node* previous_link = nullptr;
-	//Node* first_leaf = nullptr;
-
-	////проходит по дереву до листа
-	//while (true) {
-	//	if (Leaf* buf_leaf = dynamic_cast<Leaf*>(current_link))
-	//		break;
-	//	previous_link = current_link;
-	//	current_link = current_link->Get_Links()[0];
-	//}
-	//first_leaf = current_link;
-	//if()
 	if (Root* edited_root = dynamic_cast<Root*>(edited_leaf)) {
 		return;
 	}
@@ -1590,7 +1055,7 @@ void Tree::Rebalancing(Node* edited_leaf) {
 			edited_leaf->Get_Parent_link()->Delete_word(edited_leaf);
 		}
 
-		 Node * current_link = root;
+		Node * current_link = root;
 		Node* previous_link = nullptr;
 		Node* first_leaf = nullptr;
 		vector<Node*> links;
@@ -1614,8 +1079,6 @@ void Tree::Rebalancing(Node* edited_leaf) {
 				break;
 			current_link = current_link->Get_Links()[0];
 		}
-
-
 
 		int count = new_words.size() / links.size();
 
@@ -1653,140 +1116,23 @@ void Tree::Rebalancing(Node* edited_leaf) {
 					links[i]->Clear_word();
 					links[i]->Set_Words(new_words);
 				}
-
-
 		}
-
 			Node* link_for_deleteing = links[links.size() - 1];
 			link_for_deleteing->Get_Parent_link()->Delete_word(link_for_deleteing);
 			links[links.size()-2]->Clear_Links();
 			links.pop_back();
 		
 		}
-
-			/*
-		if (Leaf* leaf = dynamic_cast<Leaf*>(edited_leaf)) {
-				if (leaf->Get_Count_words() == 1) {
-					//0 - у братьев нет 3 элементов
-					//1 - у правого брата есть 3 элем и он родной
-					//2 - у левого элемента есть 3 элем и он родной
-					//3 - у правого брата есть 3 элем он двоюродный (у левого нет)
-					//4 - у левого элемента есть 3 элем и он двоюродный
-					int right = 0;
-					int left = 0;
-					int action = 0;
-					if (leaf->Get_Links().size() != 0) {
-						if (leaf->Get_Links()[0]->Get_Count_words() == 3) {
-							if (leaf->Is_Sibling(leaf->Get_Links()[0])) {
-								right = 1;
-							}
-							else {
-								right = 3;
-							}
-						}
-					}
-					if (leaf->Get_brother() != nullptr) {
-						if (leaf->Get_brother()->Get_Count_words() == 3) {
-							if (leaf->Is_Sibling(leaf->Get_brother())) {
-								left = 2;
-							}
-							else {
-								left = 4;
-							}
-						}
-					}
-					if (left != 0 || right != 0) {
-						if (left != 0 && right == 0) {
-							action = left;
-						}
-						if (left == 0 && right != 0) {
-							action = right;
-						}
-						if (left < right && left != 0) {
-							action = left;
-						}
-						if (left > right && right != 0) {
-							action = right;
-						}
-					}
-
-					string word;
-					switch (action) {
-					case 1:
-						word = leaf->Get_Links()[0]->Get_Words()[0];
-						leaf->Add_word_without_key(word);
-						if (Leaf* right_leaf = dynamic_cast<Leaf*>(leaf->Get_Links()[0])) {
-							right_leaf->Delete_word(word);
-						}
-						break;
-					case 2:
-						word = leaf->Get_brother()->Get_Words()[leaf->Get_brother()->Get_Words().size() - 1];
-						leaf->Add_word_without_key(word);
-						if (Leaf* left_leaf = dynamic_cast<Leaf*>(leaf->Get_brother())) {
-							left_leaf->Delete_word(word);
-						}
-						break;
-					case 3:
-						word = leaf->Get_Links()[0]->Get_Words()[0];
-						leaf->Add_word_without_key(word);
-						if (Leaf* right_leaf = dynamic_cast<Leaf*>(leaf->Get_Links()[0])) {
-							right_leaf->Delete_word(word);
-						}
-						break;
-					case 4:
-						word = leaf->Get_brother()->Get_Words()[leaf->Get_brother()->Get_Words().size() - 1];
-						leaf->Add_word_without_key(word);
-						if (Leaf* left_leaf = dynamic_cast<Leaf*>(leaf->Get_brother())) {
-							left_leaf->Delete_word(word);
-						}
-						break;
-					}
-				}
-		}
-			*/
-
 		root->Rebalancing(root);
 		root->Rebalancing_keys(root);
-
 	}
 }
 
 void Tree::Delete_all() {
-	//Node* current = root;
-	//vector<string> words;
-
-	//if (root->Get_Links().size() == 0) {
-	//	for (auto word : root->Get_Words()) {
-	//		words.push_back(word);
-	//	}
-	//}
-	//else {
-	//	while (true) {
-	//		if (Leaf* leaf = dynamic_cast<Leaf*>(current))
-	//			break;
-	//		current = current->Get_Links()[0];
-	//	}
-	//	while (true) {
-	//		for (auto word : current->Get_Words()) {
-	//			//words.insert(words.begin(), word);
-	//			words.push_back(word);
-	//		}
-
-	//		if (current->Get_Links().size() == 0)
-	//			break;
-	//		current = current->Get_Links()[0];
-	//	}
-	//}
-
-	//for (auto word : words) {
-	//	Delete_word(word);
-	//	cout << "\n---------------" << word << "---------------\n";
-	//	Print();
-	//}
 	Root* buf = new Root;
 	root->Clear(root);
 	root = buf;
-};
+}
 
 
 

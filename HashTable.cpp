@@ -151,8 +151,6 @@ void HashTable::From_file(string str) {
 		file.close();
 		for (auto word : words) {
 			if (!this->is_a_conj(word)) {
-				//k++;
-				//word += to_string(k); //использовалось для проверки 
 				this->Add(word);
 			}
 		}

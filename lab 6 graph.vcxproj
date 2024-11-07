@@ -135,6 +135,10 @@
     <ClInclude Include="HashTable.h" />
     <ClInclude Include="BPlusTree.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="Мастер и Маргарита.txt" />
+    <Text Include="Преступление и наказание.txt" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

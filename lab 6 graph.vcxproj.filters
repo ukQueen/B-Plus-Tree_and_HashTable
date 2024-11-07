@@ -33,4 +33,12 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="Мастер и Маргарита.txt">
+      <Filter>Исходные файлы</Filter>
+    </Text>
+    <Text Include="Преступление и наказание.txt">
+      <Filter>Исходные файлы</Filter>
+    </Text>
+  </ItemGroup>
 </Project>
